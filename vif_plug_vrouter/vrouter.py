@@ -22,10 +22,13 @@ from os_vif import plugin
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import importutils
 
 from vif_plug_vrouter import exception
 from vif_plug_vrouter.i18n import _LE
 from vif_plug_vrouter import privsep
+
+from nova import objects as nova_objects
 
 LOG = logging.getLogger(__name__)
 VHOSTUSER_MODE_SERVER = 1
@@ -248,9 +251,14 @@ class VrouterPlugin(plugin.PluginBase):
                     vnic_type = 'direct'
                 pci_dev = vif.port_profile.datapath_offload.representor_address
 
+        c = importutils.import_module('nova.context').get_admin_context()
+        i = nova_objects.Instance.get_by_uuid(c, instance_info.uuid,
+            expected_attrs=['display_name'])
+        n = i.display_name if i and 'display_name' in i else instance_info.name
+
         plug_contrail_vif(vif.id, instance_info.uuid, vif.network.id,
                           instance_info.project_id, ip_addr, ip6_addr,
-                          instance_info.name, vif.address,
+                          n, vif.address,
                           vif.vif_name, ptype, vif_type, vnic_type, pci_dev,
                           vhostuser_socket, vhostuser_mode)
 
